@@ -185,7 +185,6 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
   if (convertToPDF) {
     const xfdfString = await core.getAnnotationManager(documentViewerKey).exportAnnotations({ fields: true, widgets: true, links: true });
     const fileData = await doc.getFileData({ xfdfString, includeAnnotations, downloadType: 'pdf' });
-    console.log({ fileData });
     doc = await core.createDocument(fileData, { extension: 'pdf' });
     annotationsPromise = Promise.resolve(xfdfString);
   } else if (includeAnnotations && !options.xfdfString && !downloadAsImage) {
