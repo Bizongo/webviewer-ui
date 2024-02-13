@@ -226,15 +226,14 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
 
     const removeHTMLTagsHelper = innerHTML => {
       const array = innerHTML.split('&lt;').join('&gt;').split('&gt;');
-      const result = array.reduce((accum, curr, index) => {
+      let result = "";
+      array.forEach((element, index) => {
         if (index % 2 === 0) {
-          return curr + accum;
-        } else if (curr === '/p' || curr === '/li') {
-          return accum + '\n';
-        } else {
-          return accum;
+          result = result + element;
+        } else if (element === '/p' || element === '/li') {
+          result = result + '\n';
         }
-      }, "");
+      });
       return result;
     };
 
