@@ -242,28 +242,28 @@ const MultiViewer = () => {
     }
   }, [width, width2]);
 
-  useEffect(() => {
-    const removeListeners = () => {
-      const hasSecondViewer = !!container2.current;
-      if (hasSecondViewer) {
-        container2.current.removeEventListener('scroll', onScrollDifferMode)
-      }
-    };
-    const addEventListeners = () => {
-      const hasSecondViewer = !!container2.current;
-      if (hasSecondViewer) {
-        container2.current.addEventListener('scroll', onScrollDifferMode);
-      }
-    };
+  // useEffect(() => {
+  //   const removeListeners = () => {
+  //     const hasSecondViewer = !!container2.current;
+  //     if (hasSecondViewer) {
+  //       container2.current.removeEventListener('scroll', onScrollDifferMode)
+  //     }
+  //   };
+  //   const addEventListeners = () => {
+  //     const hasSecondViewer = !!container2.current;
+  //     if (hasSecondViewer) {
+  //       container2.current.addEventListener('scroll', onScrollDifferMode);
+  //     }
+  //   };
 
-    if (currentReadOnlyMode.current) {
-      addEventListeners();
-    } else {
-      removeListeners();
-    }
-    return removeListeners;
+  //   if (currentReadOnlyMode.current) {
+  //     addEventListeners();
+  //   } else {
+  //     removeListeners();
+  //   }
+  //   return removeListeners;
 
-  }, [currentReadOnlyMode.current])
+  // }, [currentReadOnlyMode.current])
 
 
   useEffect(() => {
