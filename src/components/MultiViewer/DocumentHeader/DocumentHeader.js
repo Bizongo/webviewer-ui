@@ -53,15 +53,53 @@ const DocumentHeader = ({
     <div
       className={classNames('DocumentHeader', { hidden: !docLoaded })}
       id={`header${documentViewerKey}`}
+      style={{ background: '#DFDFDF' }}
     >
-      <ToggleZoomOverlay documentViewerKey={documentViewerKey} />
-      <div className="file-name">{filename}</div>
+      {/* <ToggleZoomOverlay documentViewerKey={documentViewerKey} /> */}
+      <div>
+        <Button
+          img="icon-sync"
+          onClick={onClickSync}
+          isActive={isSyncing}
+          title={t(`multiViewer.${isSyncing ? 'stop' : 'start'}Sync`)}
+          style={{ marginLeft: 24, marginRight: 16, color: '#333333' }}
+        />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', width: 'calc( 100% - 115px )' }}>
+        {documentViewerKey === 1 ? (
+          <div className='current-file'>
+            <span>
+              Current File
+            </span>
+          </div>
+        ) : (
+          <div className='reference-file'>
+            <span>
+              Reference File
+            </span>
+          </div>
+        )}
+        <div title={filename} className="file-name">
+          <span>{filename}</span>
+        </div>
+      </div>
       <div className="control-buttons">
-        {!saveButtonDisabled &&
-          <Button img="icon-save" onClick={onSaveDocument} dataElement={DataElements.MULTI_VIEWER_SAVE_DOCUMENT_BUTTON} title={t('multiViewer.save')} />
-        }
-        <Button img="icon-sync" onClick={onClickSync} isActive={isSyncing} title={t(`multiViewer.${isSyncing ? 'stop' : 'start'}Sync`)} />
-        <Button img="icon-close" onClick={closeDocument} title={t('multiViewer.closeDocument')} />
+        {!saveButtonDisabled && (
+          <Button
+            img="icon-save"
+            onClick={onSaveDocument}
+            dataElement={DataElements.MULTI_VIEWER_SAVE_DOCUMENT_BUTTON}
+            title={t('multiViewer.save')}
+          />
+        )}
+        {documentViewerKey === 2 && (
+          <Button
+            img="icon-close"
+            onClick={closeDocument}
+            title={t('multiViewer.closeDocument')}
+            style={{ marginRight: 24, alignSelf: 'flex-end' }}
+          />
+        )}
       </div>
     </div>
   );
