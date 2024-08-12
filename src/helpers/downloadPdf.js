@@ -17,7 +17,7 @@ import DataElements from 'src/constants/dataElement';
 import { COMMON_COLORS } from 'constants/commonColors';
 
 let isDownloaded = false;
-let previousWatermarkSettings = { };
+let previousWatermarkSettings = {};
 let previousFileName = '';
 
 export default async (dispatch, options = {}, documentViewerKey = 1) => {
@@ -99,12 +99,12 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
       printQuality,
       colorMap,
     ] = [
-      selectors.getSortStrategy(state),
-      selectors.getPrintedNoteDateFormat(state),
-      selectors.getCurrentLanguage(state),
-      selectors.getPrintQuality(state),
-      selectors.getColorMap(state),
-    ];
+        selectors.getSortStrategy(state),
+        selectors.getPrintedNoteDateFormat(state),
+        selectors.getCurrentLanguage(state),
+        selectors.getPrintQuality(state),
+        selectors.getColorMap(state),
+      ];
     const id = 'download-handler-css';
     if (!getRootNode().querySelector(`#${id}`)) {
       const style = window.document.createElement('style');
@@ -268,6 +268,29 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
     fireEvent(Events.FILE_DOWNLOADED);
     return;
   }
+
+  const removeHTMLTagsHelper = innerHTML => {
+    const array = innerHTML.split('&lt;').join('&gt;').split('&gt;');
+    let result = "";
+    array.forEach((element, index) => {
+      if (index % 2 === 0) {
+        result = result + element;
+      } else if (element === '/p' || element === '/li') {
+        result = result + '\n';
+      }
+    });
+    return result;
+  };
+
+  const removeHTMLTags = xfdfString => {
+    const parser = new DOMParser();
+    let xmlDoc = parser.parseFromString(xfdfString, "text/xml");
+    var contentEls = xmlDoc.getElementsByTagName('contents');
+    for (let item of contentEls) {
+      item.innerHTML = removeHTMLTagsHelper(item.innerHTML);
+    }
+    return xmlDoc.documentElement.outerHTML;
+  };
 
   let annotationsPromise = Promise.resolve();
   const convertToPDF = options.downloadType === 'pdf' && (doc.getType() === workerTypes.OFFICE || isOfficeEditorMode());
@@ -534,11 +557,11 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
       annotationsPromise = core.exportAnnotations({ useDisplayAuthor }, documentViewerKey);
     }
   } else if (!options.xfdfString && !includeAnnotations) {
-    options.xfdfString = window.Core.EMPTY_XFDF;
+    options.xfdfString = removeHTMLTags(window.Core.EMPTY_XFDF);
   }
 
   return annotationsPromise.then(async (xfdfString) => {
-    options.xfdfString = options.xfdfString || xfdfString;
+    options.xfdfString = removeHTMLTags(options.xfdfString || xfdfString);
     if (!includeAnnotations) {
       options.includeAnnotations = false;
     }

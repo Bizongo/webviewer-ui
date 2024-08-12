@@ -18,7 +18,7 @@ import { Swipeable } from 'react-swipeable';
 import SignatureModes from 'constants/signatureModes';
 import DataElements from 'constants/dataElement';
 import useDidUpdate from 'hooks/useDidUpdate';
-
+import Icon from 'components/Icon';
 import './SignatureModal.scss';
 
 const SignatureModal = () => {
@@ -214,23 +214,26 @@ const SignatureModal = () => {
                           {t('option.type.saved')}
                         </button>
                       </Tab>
-                      <div className="tab-options-divider" />
+                      {/* <div className="tab-options-divider" /> */}
                     </>
                   }
                   <Tab dataElement="inkSignaturePanelButton">
                     <button className="tab-options-button">
-                      {t('action.draw')}
+                      <Icon className="tabs_icon" glyph={'draw_black'} />
+                      <div>{t('action.draw')}</div>
                     </button>
                   </Tab>
-                  <div className="tab-options-divider" />
+                  {/* <div className="tab-options-divider" /> */}
                   <Tab dataElement="textSignaturePanelButton">
                     <button className="tab-options-button">
+                      <Icon className="tabs_icon" glyph={'edit_note'} />
                       {t('action.type')}
                     </button>
                   </Tab>
-                  <div className="tab-options-divider" />
+                  {/* <div className="tab-options-divider" /> */}
                   <Tab dataElement="imageSignaturePanelButton">
                     <button className="tab-options-button">
+                      <Icon className="tabs_icon" glyph={'laptop_black'} />
                       {t('action.upload')}
                     </button>
                   </Tab>

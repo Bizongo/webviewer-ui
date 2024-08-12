@@ -8,6 +8,7 @@ import ColorPalette from 'components/ColorPalette';
 import Dropdown from 'components/Dropdown';
 import SignatureModes from 'constants/signatureModes';
 import core from 'core';
+import DropdownColor from 'src/components/DropdownColor';
 import { COMMON_COLORS, BASIC_PALETTE } from 'constants/commonColors';
 
 import './InkSignature.scss';
@@ -207,6 +208,29 @@ const InkSignature = ({
             className="canvas-colorpalette-container"
           >
             <div className='signature-and-initials-container'>
+              <div style={{
+                position: 'relative',
+                float: 'right',
+                zIndex: '20',
+                marginRight: '10px',
+                marginTop: '10px',
+              }}>
+                <div className="signature-style-options">
+                  <Dropdown
+                    disabled={true}
+                    placeholder={'Text Styles'}
+                    className="dropClass"
+                  />
+                  <div className="placeholder-dropdown"></div>
+
+                  <DropdownColor
+                    color={toolStyles['StrokeColor']}
+                    property="StrokeColor"
+                    onStyleChange={(property, value) => handleColorInputChange(property, value)}
+                    overridePalette2={['#000000', '#4E7DE9', '#E44234']}
+                  />
+                </div>
+              </div>
               <div className='signature-input full-signature'>
                 <canvas
                   className="ink-signature-canvas"
@@ -242,7 +266,7 @@ const InkSignature = ({
                 </div>
               </div>
             </div>
-            <div className="colorpalette-clear-container">
+            {/* <div className="colorpalette-clear-container">
               <div className="signature-style-options">
                 <Dropdown
                   disabled={true}
@@ -254,11 +278,10 @@ const InkSignature = ({
                   color={toolStyles['StrokeColor']}
                   property="StrokeColor"
                   onStyleChange={(property, value) => handleColorInputChange(property, value)}
-                  /* eslint-disable-next-line custom/no-hex-colors */
                   overridePalette2={[COMMON_COLORS['black'], BASIC_PALETTE[12], BASIC_PALETTE[7]]}
                 />
               </div>
-            </div>
+            </div> */}
           </Swipeable>
         </div>
       )}

@@ -10,6 +10,7 @@ import cropImageFromCanvas from 'helpers/cropImageFromCanvas';
 import selectors from 'selectors';
 import { useTranslation } from 'react-i18next';
 import { COMMON_COLORS, BASIC_PALETTE } from 'constants/commonColors';
+import DropdownColor from 'src/components/DropdownColor';
 
 import './TextSignature.scss';
 import getRootNode from 'helpers/getRootNode';
@@ -339,8 +340,40 @@ const TextSignature = ({
   return (
     <div className="text-signature">
       <div className="signature-and-initials-container">
+        <div style={{
+          position: 'relative',
+          float: 'right',
+          zIndex: '20',
+          marginRight: '10px',
+          marginTop: '10px',
+        }}>
+
+          <div className="signature-style-options">
+            <Dropdown
+              items={fonts.map((font) => ({ font, value: `${fullSignature} ${isInitialsModeEnabled ? initials : ''}` }))}
+              getCustomItemStyle={(item) => ({ fontFamily: item.font })}
+              getKey={(item) => item.font}
+              getDisplayValue={(item) => {
+                return item.value || item.font;
+              }}
+              onClickItem={handleDropdownSelectionChange}
+              currentSelectionKey={selectedFontFamily || fonts[0]}
+              maxHeight={isMobile() ? 80 : null}
+              dataElement="text-signature-font-dropdown"
+              className="dropClass"
+            />
+            <div className="placeholder-dropdown"></div>
+
+            <DropdownColor
+              color={fontColor}
+              property="fontColor"
+              onStyleChange={(property, value) => handleColorInputChange(property, value)}
+              overridePalette2={['#000000', '#4E7DE9', '#E44234']}
+            />
+          </div>
+        </div>
         <div className="signature-input full-signature">
-          <label>
+          <label style={{ display: 'flex' }}>
             <input
               className="text-signature-input"
               ref={inputRef}
@@ -395,7 +428,7 @@ const TextSignature = ({
       {renderHiddenSignatureElements()}
       <canvas ref={fullSignatureHiddenCanvasRef} />
       <canvas ref={initialsHiddenCanvasRef} />
-      <div className="colorpalette-clear-container">
+      {/* <div className="colorpalette-clear-container">
         <div className="signature-style-options">
           {renderFontOptions()}
           <div className="placeholder-dropdown"></div>
@@ -404,11 +437,10 @@ const TextSignature = ({
             color={fontColor}
             property="fontColor"
             onStyleChange={(property, value) => handleColorInputChange(property, value)}
-            /* eslint-disable-next-line custom/no-hex-colors */
             overridePalette2={[COMMON_COLORS['black'], BASIC_PALETTE[12], BASIC_PALETTE[7]]}
           />
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

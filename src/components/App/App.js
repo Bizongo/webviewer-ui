@@ -376,15 +376,15 @@ const App = ({ removeEventHandlers }) => {
         <RibbonOverflowFlyout />
         <ViewControlsFlyout />
         <Accessibility />
-        <Header />
+        {/* <Header /> */}
         {isOfficeEditorMode && (
           <LazyLoadWrapper
             Component={LazyLoadComponents.OfficeEditorToolsHeader}
             dataElement={DataElements.OFFICE_EDITOR_TOOLS_HEADER}
           />
         )}
-        {customizableUI && <TabsHeader/>}
-        <TopHeader />
+        {customizableUI && <TabsHeader />}
+        {/* <TopHeader /> */}
         <div className="content">
           <LeftHeader />
           {!customizableUI && <LazyLoadWrapper
@@ -394,7 +394,7 @@ const App = ({ removeEventHandlers }) => {
           {panels}
           {!isMultiViewerMode && <DocumentContainer />}
           {window?.ResizeObserver && <MultiViewer />}
-          <RightHeader />
+          {/* <RightHeader />
           {!customizableUI && <RightPanel dataElement={DataElements.SEARCH_PANEL} onResize={(width) => dispatch(actions.setSearchPanelWidth(width))}>
             <LazyLoadWrapper
               Component={LazyLoadComponents.SearchPanel}
@@ -434,9 +434,9 @@ const App = ({ removeEventHandlers }) => {
               <ComparePanel />
             </RightPanel>
           </MultiViewerWrapper>
-          <BottomHeader />
+          <BottomHeader /> */}
         </div>
-        <LazyLoadWrapper
+        {/* <LazyLoadWrapper
           Component={LazyLoadComponents.ViewControlsOverlay}
           dataElement={DataElements.VIEW_CONTROLS_OVERLAY}
         />
@@ -447,7 +447,7 @@ const App = ({ removeEventHandlers }) => {
         <LazyLoadWrapper
           Component={LazyLoadComponents.ZoomOverlay}
           dataElement={DataElements.ZOOM_OVERLAY}
-        />
+        /> */}
         <LazyLoadWrapper
           Component={LazyLoadComponents.AnnotationContentOverlay}
           dataElement={DataElements.ANNOTATION_CONTENT_OVERLAY}
@@ -458,10 +458,10 @@ const App = ({ removeEventHandlers }) => {
           dataElement={DataElements.LINK_ANNOTATION_POPUP}
           onOpenHook={useOnLinkAnnotationPopupOpen}
         />
-        <LazyLoadWrapper
+        {/* <LazyLoadWrapper
           Component={LazyLoadComponents.PageManipulationOverlay}
           dataElement={DataElements.PAGE_MANIPULATION_OVERLAY}
-        />
+        /> */}
         <LazyLoadWrapper
           Component={LazyLoadComponents.ThumbnailMoreOptionsPopup}
           dataElement={DataElements.THUMBNAILS_CONTROL_MANIPULATE_POPUP}
@@ -557,7 +557,7 @@ const App = ({ removeEventHandlers }) => {
             See https://apryse.atlassian.net/browse/WVR-3094
           */
         }
-        <ProgressModal />
+        {/* <ProgressModal /> */}
 
         <LazyLoadWrapper Component={LazyLoadComponents.WarningModal} dataElement={DataElements.WARNING_MODAL} />
         <LazyLoadWrapper Component={LazyLoadComponents.Model3DModal} dataElement={DataElements.MODEL3D_MODAL} />

@@ -29,6 +29,7 @@ const DocumentContainer = ({
   container,
   onReady,
   docLoaded,
+  currentReadOnlyMode,
 }) => {
   const documentViewer = core.getDocumentViewer(documentViewerKey);
   const dispatch = useDispatch();
@@ -74,17 +75,19 @@ const DocumentContainer = ({
   };
   const onWheel = (e) => {
     const displayMode = documentViewer.getDisplayModeManager().getDisplayMode();
-    if (isMouseWheelZoomEnabled && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      wheelToZoom(e, core.getZoom(documentViewerKey));
-    } else if (!displayMode?.isContinuous() && displayMode?.IsScrollable()) {
-      wheelToNavigatePages(e);
-      dispatch(actions.closeElements([
-        'annotationPopup',
-        'textPopup',
-        'inlineCommentPopup',
-        'annotationNoteConnectorLine',
-      ]));
+    if (!currentReadOnlyMode.current) {
+      if (isMouseWheelZoomEnabled && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        wheelToZoom(e, core.getZoom(documentViewerKey));
+      } else if (!displayMode?.isContinuous() && displayMode?.IsScrollable()) {
+        wheelToNavigatePages(e);
+        dispatch(actions.closeElements([
+          'annotationPopup',
+          'textPopup',
+          'inlineCommentPopup',
+          'annotationNoteConnectorLine',
+        ]));
+      }
     }
   };
   const wheelToZoom = throttle((e, zoom) => {
