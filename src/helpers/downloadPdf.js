@@ -282,6 +282,15 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
     return result;
   };
 
+  const getTextContent = htmlString => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlString;
+
+    // Extract the text content
+    const textContent = tempDiv.textContent || tempDiv.innerText;
+    return textContent;
+  };
+
   const removeHTMLTags = xfdfString => {
     const parser = new DOMParser();
     let xmlDoc = parser.parseFromString(xfdfString, "text/xml");
@@ -498,7 +507,8 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
             ctx.fillStyle = COMMON_COLORS['black'];
             const annotContents = annotation.getContents();
             if (annotContents) {
-              await drawTextAndWrap(annotation.getContents());
+              const annotationContent = getTextContent(annotation.getContents());
+              await drawTextAndWrap(annotationContent);
               y += cardSpacing;
             } else {
               y -= cardSpacing;
