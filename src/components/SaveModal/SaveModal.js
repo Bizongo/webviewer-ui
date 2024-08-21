@@ -287,12 +287,12 @@ const SaveModal = () => {
                     label={t('saveModal.includeAnnotation')}
                     onChange={onIncludeAnnotationsChanged}
                   />
-                  <Choice
+                  {/* <Choice
                     checked={includeComments}
                     name='include-comment-option'
                     label={t('saveModal.includeComments')}
                     onChange={onIncludeCommentsChanged}
-                  />
+                  /> */}
                 </div>
               </>)}
             </div>
