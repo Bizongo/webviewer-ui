@@ -1,4 +1,4 @@
-import React, { useEffect, useState, } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import selectors from 'selectors';
 import actions from 'actions';
@@ -15,6 +15,8 @@ import downloadPdf from 'helpers/downloadPdf';
 import { isOfficeEditorMode } from 'helpers/officeEditor';
 import { workerTypes } from 'constants/types';
 import range from 'lodash/range';
+import { clone } from 'lodash';
+import { cropPageArray, getExtendedPageDimensions, WHITE_CROP, timeout, publish } from 'helpers/downloadPdf';
 
 import './SaveModal.scss';
 
@@ -52,11 +54,12 @@ const SaveModal = () => {
   const [includeComments, setIncludeComments] = useState(false);
   const [pageCount, setPageCount] = useState(1);
   const [errorText, setErrorText] = useState('');
+  const isWhiteSpaceEnable = !!window.isWhiteSpaceEnable;
 
   useEffect(() => {
     const keydownListener = (e) => {
       if (e.key === 'Enter') {
-        onSave();
+        isWhiteSpaceEnable ? onWhiteAnnotationsSave() : onSave();
       }
     };
 
@@ -160,6 +163,106 @@ const SaveModal = () => {
     if (pageNumbers.length > 0) {
       clearError();
     }
+  };
+  const onWhiteAnnotationsSave = async () => {
+    if (!filename) {
+      return;
+    }
+    publish('SAVING_FILE', true);
+    let pages;
+    if (pageRange === PAGE_RANGES.SPECIFY) {
+      pages = specifiedPages?.length ? specifiedPages : [core.getCurrentPage(activeDocumentViewerKey)];
+    } else if (pageRange === PAGE_RANGES.CURRENT_PAGE) {
+      pages = [core.getCurrentPage(activeDocumentViewerKey)];
+    } else if (pageRange === PAGE_RANGES.CURRENT_VIEW) {
+      pages = [core.getCurrentPage(activeDocumentViewerKey)];
+    } else {
+      pages = range(1, core.getTotalPages(activeDocumentViewerKey) + 1, 1);
+    }
+
+    let documentViewer = core.getDocumentViewer(activeDocumentViewerKey);
+    let doc = core.getDocument(activeDocumentViewerKey);
+    let annotationManager = core.getAnnotationManager();
+    let whiteAnnotations = clone(annotationManager?.getAnnotationsList() || []);
+    let documentInfo = {};
+
+    for (let i = 1; i <= doc.getPageCount(); i++) {
+      const pageHeight = clone(documentViewer.getPageHeight(i));
+      const pageWidth = clone(documentViewer.getPageWidth(i));
+      const croppedHeight = pageHeight - 2 * WHITE_CROP;
+      const croppedWidth = pageWidth - 2 * WHITE_CROP;
+
+      documentInfo[i] = {
+        Page: {
+          Height: croppedHeight,
+          Width: croppedWidth,
+          x1: WHITE_CROP,
+          y1: WHITE_CROP,
+          x2: croppedWidth + WHITE_CROP,
+          y2: croppedHeight + WHITE_CROP
+        },
+        Annotation: []
+      };
+
+      for (const item of whiteAnnotations) {
+        if (item.PageNumber === i) {
+          documentInfo[i].Annotation.push({
+            Height: item.Height,
+            Width: item.Width,
+            x1: item.X,
+            y1: item.Y,
+            x2: item.X + item.Width,
+            y2: item.Y + item.Height
+          });
+        }
+      }
+    }
+
+    let xfdfString = clone(await annotationManager.exportAnnotations());
+
+    let cropBox = getExtendedPageDimensions(documentInfo, includeAnnotations);
+
+    await annotationManager.deleteAnnotations((annotationManager?.getAnnotationsList() || []), { force: true });
+
+    await timeout(100);
+
+    await cropPageArray(doc, cropBox);
+
+    await timeout(100);
+
+    let annotations = await annotationManager.importAnnotations(xfdfString);
+    annotations.forEach((a) => {
+      annotationManager.redrawAnnotation(a);
+    });
+
+    await timeout(100);
+
+    await downloadPdf(dispatch, {
+      includeAnnotations,
+      includeComments,
+      filename: filename || 'untitled',
+      downloadType: filetype.extension,
+      pages,
+      store,
+    }, activeDocumentViewerKey);
+
+    await timeout(100);
+
+    await annotationManager.deleteAnnotations(annotationManager?.getAnnotationsList(), { force: true });
+
+    await timeout(100);
+
+    await cropPageArray(doc, cropBox, true);
+
+    await timeout(100);
+
+    annotations = await annotationManager.importAnnotations(xfdfString);
+    annotations.forEach((a) => {
+      annotationManager.redrawAnnotation(a);
+    });
+
+    closeModal();
+    publish('SAVING_FILE', false);
   };
   const onSave = () => {
     if (!filename) {
@@ -297,7 +400,7 @@ const SaveModal = () => {
               </>)}
             </div>
             <div className='footer'>
-              <Button disabled={saveDisabled} onClick={onSave} label={t('saveModal.save')} />
+              <Button disabled={saveDisabled} onClick={() => isWhiteSpaceEnable ? onWhiteAnnotationsSave() : onSave()} label={t('saveModal.save')} />
             </div>
           </div>
         </div>

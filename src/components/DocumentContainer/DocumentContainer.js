@@ -412,7 +412,13 @@ const ConnectedComponent = (props) => {
   const [isMobile, setIsMobile] = useState(isMobileSize());
 
   useEffect(() => {
-    const onDocumentLoaded = () => {
+    const getWhiteSpaceEnable = ({ detail }) => {
+      window.isWhiteSpaceEnable = detail;
+    }
+    const onDocumentLoaded = async () => {
+      const documentViewer = core.getDocumentViewer(1);
+      const scrollViewElement = documentViewer.getScrollViewElement();
+      scrollViewElement.addEventListener('IS_WHITE_SPACE_ENABLE', getWhiteSpaceEnable);
       if (window.isApryseWebViewerWebComponent) {
         // For the 2nd viewer in multi-webcomponents, we need to delay updating isMobile until the document is loaded
         // A better solution is to elevate useMedia hook but that requires refactoring DocumentContainer into a functional component
@@ -420,7 +426,10 @@ const ConnectedComponent = (props) => {
       }
     };
     core.addEventListener('documentLoaded', onDocumentLoaded);
-    return () => core.removeEventListener('documentLoaded', onDocumentLoaded);
+    return () => {
+      core.removeEventListener('documentLoaded', onDocumentLoaded);
+      core.getDocumentViewer(1).getScrollViewElement().removeEventListener('IS_WHITE_SPACE_ENABLE', getWhiteSpaceEnable);
+    }
   }, []);
 
   return <ConnectedDocumentContainer {...props} isMobile={isMobile} />;
