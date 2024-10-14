@@ -20,6 +20,100 @@ let isDownloaded = false;
 let previousWatermarkSettings = {};
 let previousFileName = '';
 
+export function publish(eventName, data) {
+  const documentViewer = core.getDocumentViewer(1);
+  const scrollViewElement = documentViewer.getScrollViewElement();
+  const event = new CustomEvent(eventName, { detail: data });
+  scrollViewElement.dispatchEvent(event);
+}
+
+export const WHITE_CROP = 500;
+
+export const cropPage = async (doc, x, y) => {
+  const cropTop = -y;
+  const cropLeft = -x;
+  const cropRight = -x;
+  const cropBottom = -y;
+  const page1 = 1;
+  const pagesToCrop = Array.from({ length: doc.getPageCount() }, (_, i) => i + 1);
+  await doc.cropPages(pagesToCrop, cropTop, cropBottom, cropLeft, cropRight);
+};
+
+export const cropPageArray = async (doc, cropBox, revert = false) => {
+  for (const key of Object.keys(cropBox)) {
+    const cropTop = revert ? cropBox[key].cropY : -cropBox[key].cropY;
+    const cropLeft = revert ? cropBox[key].cropX : -cropBox[key].cropX;
+    const cropRight = revert ? cropBox[key].cropX : -cropBox[key].cropX;
+    const cropBottom = revert ? cropBox[key].cropY : -cropBox[key].cropY;
+    const page = [parseInt(key)];
+    await doc.cropPages(page, cropTop, cropBottom, cropLeft, cropRight);
+  }
+};
+
+
+const findBoundaryCoordinates = (pointsArray) => {
+  let minX1 = Infinity, minY1 = Infinity, maxX2 = -Infinity, maxY2 = -Infinity;
+  for (const point of pointsArray) {
+    if (point.x1 < minX1) minX1 = point.x1;
+    if (point.y1 < minY1) minY1 = point.y1;
+    if (point.x2 > maxX2) maxX2 = point.x2;
+    if (point.y2 > maxY2) maxY2 = point.y2;
+  }
+  return { minX1, minY1, maxX2, maxY2 };
+};
+
+export const getExtendedPageDimensions = (documentInfo, includeAnnotations = true) => {
+  let cropBox = {};
+
+  for (const key of Object.keys(documentInfo)) {
+    const allPointsArray = [{
+      x1: documentInfo[key].Page.x1,
+      y1: documentInfo[key].Page.y1,
+      x2: documentInfo[key].Page.x2,
+      y2: documentInfo[key].Page.y2
+    }];
+    for (const item of documentInfo[key].Annotation) {
+      allPointsArray.push({
+        x1: item.x1,
+        y1: item.y1,
+        x2: item.x2,
+        y2: item.y2
+      });
+    }
+    const boundaryCoordinates = findBoundaryCoordinates(allPointsArray);
+    const calculatedCropBox = {
+      cropX: Math.max(Math.abs(documentInfo[key].Page.x1 - boundaryCoordinates.minX1), Math.abs(boundaryCoordinates.maxX2 - documentInfo[key].Page.x2)),
+      cropY: Math.max(Math.abs(documentInfo[key].Page.y1 - boundaryCoordinates.minY1), Math.abs(boundaryCoordinates.maxY2 - documentInfo[key].Page.y2))
+    };
+
+    if (!includeAnnotations) {
+      cropBox[key] = {
+        cropX: -WHITE_CROP,
+        cropY: -WHITE_CROP
+      }
+    }
+    else if (boundaryCoordinates.minX1 === documentInfo[key].Page.x1 &&
+      boundaryCoordinates.minY1 === documentInfo[key].Page.y1 &&
+      boundaryCoordinates.maxX2 === documentInfo[key].Page.x2 &&
+      boundaryCoordinates.maxY2 === documentInfo[key].Page.y2) {
+      cropBox[key] = {
+        cropX: -WHITE_CROP,
+        cropY: -WHITE_CROP
+      }
+    } else {
+      cropBox[key] = {
+        cropX: calculatedCropBox.cropX - WHITE_CROP + 50,
+        cropY: calculatedCropBox.cropY - WHITE_CROP + (12 * calculatedCropBox.cropY) / 100
+      }
+    }
+  }
+  return cropBox;
+};
+
+export async function timeout(delay) {
+  return new Promise((res) => setTimeout(res, delay));
+}
+
 export default async (dispatch, options = {}, documentViewerKey = 1) => {
   let doc = core.getDocument(documentViewerKey);
 
@@ -269,38 +363,6 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
     return;
   }
 
-  const removeHTMLTagsHelper = innerHTML => {
-    const array = innerHTML.split('&lt;').join('&gt;').split('&gt;');
-    let result = "";
-    array.forEach((element, index) => {
-      if (index % 2 === 0) {
-        result = result + element;
-      } else if (element === '/p' || element === '/li') {
-        result = result + '\n';
-      }
-    });
-    return result;
-  };
-
-  const getTextContent = htmlString => {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlString;
-
-    // Extract the text content
-    const textContent = tempDiv.textContent || tempDiv.innerText;
-    return textContent;
-  };
-
-  const removeHTMLTags = xfdfString => {
-    const parser = new DOMParser();
-    let xmlDoc = parser.parseFromString(xfdfString, "text/xml");
-    var contentEls = xmlDoc.getElementsByTagName('contents');
-    for (let item of contentEls) {
-      item.innerHTML = removeHTMLTagsHelper(item.innerHTML);
-    }
-    return xmlDoc.documentElement.outerHTML;
-  };
-
   let annotationsPromise = Promise.resolve();
   const convertToPDF = options.downloadType === 'pdf' && (doc.getType() === workerTypes.OFFICE || isOfficeEditorMode());
 
@@ -507,8 +569,7 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
             ctx.fillStyle = COMMON_COLORS['black'];
             const annotContents = annotation.getContents();
             if (annotContents) {
-              const annotationContent = getTextContent(annotation.getContents());
-              await drawTextAndWrap(annotationContent);
+              await drawTextAndWrap(annotation.getContents());
               y += cardSpacing;
             } else {
               y -= cardSpacing;
@@ -567,11 +628,11 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
       annotationsPromise = core.exportAnnotations({ useDisplayAuthor }, documentViewerKey);
     }
   } else if (!options.xfdfString && !includeAnnotations) {
-    options.xfdfString = removeHTMLTags(window.Core.EMPTY_XFDF);
+    options.xfdfString = window.Core.EMPTY_XFDF;
   }
 
   return annotationsPromise.then(async (xfdfString) => {
-    options.xfdfString = removeHTMLTags(options.xfdfString || xfdfString);
+    options.xfdfString = options.xfdfString || xfdfString;
     if (!includeAnnotations) {
       options.includeAnnotations = false;
     }

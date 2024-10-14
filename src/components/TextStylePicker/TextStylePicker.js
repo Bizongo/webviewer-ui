@@ -352,14 +352,15 @@ const TextStylePicker = ({
               disabled={isFreeTextAutoSize}
             />
           </div>
-        )}{isFreeText && (<div className="row text-vertical-alignment auto-size-checkbox">
+        )}
+        {/* {isFreeText && (<div className="row text-vertical-alignment auto-size-checkbox">
           <Choice
             label={i18next.t('option.freeTextOption.autoSizeFont')}
             checked={isFreeTextAutoSize}
             onChange={onFreeTextSizeToggle}
             aria-label={freeTextAutoSizeDataElement}
           />
-        </div>)}
+        </div>)} */}
       </div>
     </>
   );
