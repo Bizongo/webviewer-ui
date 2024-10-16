@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import actions from 'actions';
@@ -23,6 +23,10 @@ import ReaderModeViewer from 'components/ReaderModeViewer';
 import LazyLoadWrapper, { LazyLoadComponents } from 'components/LazyLoadWrapper';
 import useOnMeasurementToolOrAnnotationSelected from 'hooks/useOnMeasurementToolOrAnnotationSelected';
 import useOnCountMeasurementAnnotationSelected from 'hooks/useOnCountMeasurementAnnotationSelected';
+import downloadPdf, { cropPageArray, getExtendedPageDimensions, WHITE_CROP, timeout, publish } from 'src/helpers/downloadPdf';
+import { useStore, useDispatch } from 'react-redux';
+import range from 'lodash/range';
+import { clone } from 'lodash';
 
 import './DocumentContainer.scss';
 import DataElements from 'src/constants/dataElement';
@@ -409,16 +413,122 @@ const mapDispatchToProps = (dispatch) => ({
 const ConnectedDocumentContainer = connect(mapStateToProps, mapDispatchToProps)(DocumentContainer);
 
 const ConnectedComponent = (props) => {
+  const store = useStore();
+  const dispatch = useDispatch();
   const [isMobile, setIsMobile] = useState(isMobileSize());
+  const isWhiteSpaceEnableRef = useRef(null);
 
   useEffect(() => {
     const getWhiteSpaceEnable = ({ detail }) => {
       window.isWhiteSpaceEnable = detail;
+      isWhiteSpaceEnableRef.current = detail;
     }
+
+    const downloadFileWithAnnotations = async () => {
+      const activeDocumentViewerKey = 1;
+      const includeAnnotations = true;
+      const pages = range(1, core.getTotalPages(activeDocumentViewerKey) + 1, 1);
+      let documentViewer = core.getDocumentViewer(activeDocumentViewerKey);
+      let doc = core.getDocument(activeDocumentViewerKey);
+      const name = doc.getFilename();
+      if (!isWhiteSpaceEnableRef?.current) {
+        await downloadPdf(dispatch, {
+          includeAnnotations,
+          includeComments: false,
+          filename: name || 'untitled',
+          downloadType: 'pdf',
+          pages,
+          store,
+        }, activeDocumentViewerKey);
+      } else {
+        publish('SAVING_FILE', true);
+        let annotationManager = core.getAnnotationManager();
+        let whiteAnnotations = clone(annotationManager?.getAnnotationsList() || []);
+        let documentInfo = {};
+
+        for (let i = 1; i <= doc.getPageCount(); i++) {
+          const pageHeight = clone(documentViewer.getPageHeight(i));
+          const pageWidth = clone(documentViewer.getPageWidth(i));
+          const croppedHeight = pageHeight - 2 * WHITE_CROP;
+          const croppedWidth = pageWidth - 2 * WHITE_CROP;
+
+          documentInfo[i] = {
+            Page: {
+              Height: croppedHeight,
+              Width: croppedWidth,
+              x1: WHITE_CROP,
+              y1: WHITE_CROP,
+              x2: croppedWidth + WHITE_CROP,
+              y2: croppedHeight + WHITE_CROP
+            },
+            Annotation: []
+          };
+
+          for (const item of whiteAnnotations) {
+            if (item.PageNumber === i) {
+              documentInfo[i].Annotation.push({
+                Height: item.Height,
+                Width: item.Width,
+                x1: item.X,
+                y1: item.Y,
+                x2: item.X + item.Width,
+                y2: item.Y + item.Height
+              });
+            }
+          }
+        }
+
+        let xfdfString = clone(await annotationManager.exportAnnotations());
+
+        let cropBox = getExtendedPageDimensions(documentInfo, includeAnnotations);
+
+        await annotationManager.deleteAnnotations((annotationManager?.getAnnotationsList() || []), { force: true });
+
+        await timeout(100);
+
+        await cropPageArray(doc, cropBox);
+
+        await timeout(100);
+
+        let annotations = await annotationManager.importAnnotations(xfdfString);
+        annotations.forEach((a) => {
+          annotationManager.redrawAnnotation(a);
+        });
+
+        await timeout(100);
+
+        await downloadPdf(dispatch, {
+          includeAnnotations,
+          includeComments: false,
+          filename: name || 'untitled',
+          downloadType: 'pdf',
+          pages,
+          store,
+        }, activeDocumentViewerKey);
+
+        await timeout(100);
+
+        await annotationManager.deleteAnnotations(annotationManager?.getAnnotationsList(), { force: true });
+
+        await timeout(100);
+
+        await cropPageArray(doc, cropBox, true);
+
+        await timeout(100);
+
+        annotations = await annotationManager.importAnnotations(xfdfString);
+        annotations.forEach((a) => {
+          annotationManager.redrawAnnotation(a);
+        });
+        publish('SAVING_FILE', false);
+      }
+    }
+
     const onDocumentLoaded = async () => {
       const documentViewer = core.getDocumentViewer(1);
       const scrollViewElement = documentViewer.getScrollViewElement();
       scrollViewElement.addEventListener('IS_WHITE_SPACE_ENABLE', getWhiteSpaceEnable);
+      scrollViewElement.addEventListener('DOWNLOAD_FILE_WITH_ANNOTATIONS', downloadFileWithAnnotations);
       if (window.isApryseWebViewerWebComponent) {
         // For the 2nd viewer in multi-webcomponents, we need to delay updating isMobile until the document is loaded
         // A better solution is to elevate useMedia hook but that requires refactoring DocumentContainer into a functional component
@@ -429,6 +539,7 @@ const ConnectedComponent = (props) => {
     return () => {
       core.removeEventListener('documentLoaded', onDocumentLoaded);
       core.getDocumentViewer(1).getScrollViewElement().removeEventListener('IS_WHITE_SPACE_ENABLE', getWhiteSpaceEnable);
+      core.getDocumentViewer(1).getScrollViewElement().removeEventListener('DOWNLOAD_FILE_WITH_ANNOTATIONS', downloadFileWithAnnotations);
     }
   }, []);
 
